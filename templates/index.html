@@ -7,12 +7,22 @@
     <link rel="stylesheet" href="{% static 'css/index.css' %}"/>
 </head>
 <body>
-
     <div id="main-layout">
         <div id="header">
             <h1>Система управления умным домом</h1>
             <div id="homestatus">
-
+                <div id="temperature" class="statusValue">
+                    <p>Температура</p>
+                    <div class="value">{{ temperature }}°C</div>
+                </div>
+                <div id="humidity" class="statusValue">
+                    <p>Влажность воздуха</p>
+                    <div class="value">{{humidity}}%</div>
+                </div>
+                <div id="pressure" class="statusValue">
+                    <p>Давление</p>
+                    <div class="value">{{presure}} мм.рт.ст</div>
+                </div>
             </div>
 
         </div>

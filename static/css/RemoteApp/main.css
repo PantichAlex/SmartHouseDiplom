@@ -1,0 +1,6 @@
+.controllButton{
+    display:  inline-block;
+    width: 10%;
+    border-style: solid;
+    padding: 1%;
+}

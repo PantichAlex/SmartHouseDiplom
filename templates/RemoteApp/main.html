@@ -1,5 +1,17 @@
 {% extends "index.html"%}
 
 {% block ControllPanel %}
-    <h1>контроль управления</h1>
+    {%load staticfiles%}
+    <link rel="stylesheet" href="{% static 'css/RemoteApp/main.css' %}">
+    <h1>Панель управления</h1>
+    <div>
+        {% for control in Controls%}
+            <div class="controllButton">
+                <img src="https://pngicon.ru/file/uploads/microshema-128x128.png" alt="микросхема">
+                <p>Устройство {{control}}</p></div>
+
+        {% endfor%}
+        <div class="controllButton"> добавить устройство</div>
+    </div>
+
 {%endblock%}

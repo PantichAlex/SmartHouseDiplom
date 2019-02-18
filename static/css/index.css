@@ -2,7 +2,7 @@
 
     width: 100%;
     height:100%;
-    background-color: #1006fa;
+
     margin-top:-2%;
     margin-left:auto;
     margin-right: auto;
@@ -12,15 +12,12 @@
     width: 95%;
     height:20%;
     margin: 0 auto;
-    background-color: #00ffff
-
-}
+  }
 
 #ControllPanel{
     width: 95%;
     height: 70%;
     margin: 0 auto;
-    background-color: #ff00ff;
 
 }
 
@@ -28,5 +25,15 @@
    width: 95%;
    height: 10%;
    margin: 0 auto;
-   background-color: #ffff00;
+ }
+
+#homestatus{
+    display: flex;
+}
+
+.statusValue{
+    display: grid;
+    padding-left: 10%;
+    width: 80%;
+
 }
