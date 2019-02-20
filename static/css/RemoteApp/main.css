@@ -1,6 +1,11 @@
 .controllButton{
-    display:  inline-block;
-    width: 10%;
-    border-style: solid;
-    padding: 1%;
+}
+
+
+.container{
+
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+
 }
