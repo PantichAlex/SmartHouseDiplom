@@ -3,7 +3,7 @@
     {%load staticfiles%}
 
     <meta charset="UTF-8">
-    <title>Система управления умным домо</title>
+    <title>Система управления умным домом</title>
     <link rel="stylesheet" href="{% static 'css/index.css' %}"/>
 </head>
 <body>
@@ -13,15 +13,15 @@
             <div id="homestatus">
                 <div id="temperature" class="statusValue">
                     <p>Температура</p>
-                    <div class="value">{{ temperature }}°C</div>
+                    <div class="value">{{ statistic.temperature }}°C</div>
                 </div>
                 <div id="humidity" class="statusValue">
                     <p>Влажность воздуха</p>
-                    <div class="value">{{humidity}}%</div>
+                    <div class="value">{{statistic.humidity}}%</div>
                 </div>
                 <div id="pressure" class="statusValue">
                     <p>Давление</p>
-                    <div class="value">{{presure}} мм.рт.ст</div>
+                    <div class="value">{{statistic.presure}} мм.рт.ст</div>
                 </div>
             </div>
 

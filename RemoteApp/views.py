@@ -1,13 +1,13 @@
 from django.shortcuts import render
 
+from .RemoteModel.HomeStatistics import HomeStatistics
 
 def index(request):
 
     HomeParameters=dict()
 
-    HomeParameters["temperature"]=22
-    HomeParameters["humidity"]=60
-    HomeParameters["presure"]=761
+    HomeParameters["statistic"]=HomeStatistics()
+
     HomeParameters["Controls"]=tuple(range(30))
 
     return render(request,"RemoteApp/main.html", context=HomeParameters)
