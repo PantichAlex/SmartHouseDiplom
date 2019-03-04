@@ -14,11 +14,11 @@ class Users(models.Model):
 
 
 class Premissions(models.Model):
-
     class Meta:
         db_table="Permissions"
         verbose_name="Права"
 
+    permissionDescription=models.CharField(verbose_name="Описание", max_length=500)
 
 class UserPemissions(models.Model):
 
@@ -39,6 +39,7 @@ class Devices(models.Model):
 
     name=models.CharField(verbose_name="Название", max_length=100)
     driverPath=models.CharField(verbose_name="Путь к драйверу", max_length=300)
+    iconPath=models.CharField(verbose_name="Иконка", max_length=300)
     template=models.CharField(verbose_name="Шаблон интерфейса", max_length=300)
 
 
