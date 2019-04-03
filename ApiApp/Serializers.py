@@ -5,3 +5,7 @@ from ..RemoteApp.models import Devices
 class CreateDeviceSerializer(Serializer):
 
     pass
+
+
+class AutorizationSerializer(Serializer):
+    pass
