@@ -12,9 +12,9 @@ class RoomsSerializer(ModelSerializer):
 class DeviceSerializer(ModelSerializer):
     class Meta:
         model=Devices
-        fields = ("name", "driverPath", "iconPath", "template", "room")
+        fields = ("id","name", "driverPath", "iconPath", "template", "room")
 
-class UserSerialize(ModelSerializer):
+class UserSerializer(ModelSerializer):
     class Meta:
         model=Users
         fields=("username")

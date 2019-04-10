@@ -19,7 +19,9 @@ class RoomsView(APIView):
         rooms=Rooms.objects.all()
         roomSerializer=RoomsSerializer(rooms, many=True)
 
-        return Response(roomSerializer.data)
+        response=Response(roomSerializer.data)
+        response["Access-Control-Allow-Origin"] = "*"
+        return response
 
 class Register(APIView):
 
@@ -28,6 +30,27 @@ class Register(APIView):
         print(request.GET)
         return Response("aaa")
 
+    def post(self, request):
+        pass
+
+
+class Login(APIView):
+
+    def post(self, request):
+        return Response("Login")
+
+
+class GetDeviceView(APIView):
+
+    def get(self, request,id):
+
+        device=Devices.objects.get(id=id)
+        devSerilizer = DeviceSerializer(device)
+
+        response = Response(devSerilizer.data)
+        response["Access-Control-Allow-Origin"] = "*"
+
+        return response
 
 class DevicesView(APIView):
 
@@ -35,8 +58,8 @@ class DevicesView(APIView):
         devices=Devices.objects.all()
         devSerilizer=DeviceSerializer(devices, many=True)
 
-        resp=Response(devSerilizer.data)
-        resp["Access-Control-Allow-Origin"] = "*"
-        return resp
+        response=Response(devSerilizer.data)
+        response["Access-Control-Allow-Origin"] = "*"
+        return response
 
 
