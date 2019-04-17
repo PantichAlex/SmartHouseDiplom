@@ -9,6 +9,9 @@ class Rooms(models.Model):
     RoomName=models.CharField(verbose_name="Название", max_length=50)
     Description = models.CharField(verbose_name="Описание", max_length=500)
 
+    def __str__(self):
+        return self.RoomName
+
 class Devices(models.Model):
 
     class Meta:
@@ -21,6 +24,10 @@ class Devices(models.Model):
     iconPath=models.CharField(verbose_name="Иконка", max_length=300)
     template=models.CharField(verbose_name="Шаблон интерфейса", max_length=300)
     room=models.ForeignKey(Rooms, verbose_name="Помещение", on_delete=models.CASCADE)
+
+    def __str__(self):
+
+        return self.name
 
 class Users(models.Model):
 
@@ -35,6 +42,8 @@ class Users(models.Model):
     email=models.EmailField(verbose_name="Эелектронная почта")
     phone=models.CharField(verbose_name="Телефон", max_length=20, null=True)
 
+    def __str__(self):
+        return self.username
 
 
 class Premissions(models.Model):
@@ -67,3 +76,31 @@ class Macro(models.Model):
     user=models.ForeignKey(Users,on_delete=models.CASCADE,verbose_name="Пользователь")
     device=models.ForeignKey(Devices, on_delete=models.CASCADE, verbose_name="Устройство")
     text=models.CharField(verbose_name="Текст макроса", max_length=1000)
+
+
+class CommandType(models.Model):
+    class Meta:
+        db_table="CommandType"
+        verbose_name="Тип команды"
+        verbose_name_plural="Типы команд"
+
+    typeName=models.CharField(verbose_name="Тип", max_length=20)
+    desMax=models.IntegerField(verbose_name="Максимальное значение")
+    desMin=models.IntegerField(verbose_name="Минимально значение")
+    def __str__(self):
+        return self.typeName
+
+class Command(models.Model):
+    class Meta:
+        db_table="Command"
+        verbose_name="Команда"
+        verbose_name_plural="Команды"
+
+    name=models.CharField(verbose_name="Название команды", max_length=30)
+    ctype=models.ForeignKey(CommandType, on_delete=models.CASCADE, verbose_name="Тип команды")
+    device=models.ForeignKey(Devices, on_delete=models.CASCADE,verbose_name="Устройство")
+    value=models.IntegerField(verbose_name="Значение")
+    description=models.CharField(verbose_name="Описание команды", max_length=255)
+
+    def __str__(self):
+        return self.name

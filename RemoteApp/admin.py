@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Rooms,Users,Premissions, UserPemissions, Devices, Macro
+from .models import Rooms,Users,Premissions, UserPemissions, Devices, Macro, Command,CommandType
 
 
 @admin.register(Rooms)
@@ -28,3 +28,11 @@ class DevicesAdmin(admin.ModelAdmin):
 class MacroAdmin(admin.ModelAdmin):
     fields = ("user","device", "text")
 # Register your models here.
+
+@admin.register(CommandType)
+class CommandTypeAdmin(admin.ModelAdmin):
+    fields = ("typeName","desMax", "desMin")
+
+@admin.register(Command)
+class CommandAdmin(admin.ModelAdmin):
+    fields = ("name",  "ctype","value","device","description")
