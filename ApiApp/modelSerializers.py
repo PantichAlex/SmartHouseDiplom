@@ -1,7 +1,7 @@
 
 from rest_framework.serializers import ModelSerializer
 
-from RemoteApp.models import Rooms, Devices,Users,Macro,Premissions
+from RemoteApp.models import Rooms, Devices,Users,Macro,Premissions,Command, CommandType
 
 
 class RoomsSerializer(ModelSerializer):
@@ -13,6 +13,21 @@ class DeviceSerializer(ModelSerializer):
     class Meta:
         model=Devices
         fields = ("id","name", "driverPath", "iconPath", "template", "room")
+
+
+class CommandTypeSerializer(ModelSerializer):
+    class Meta:
+        model=CommandType
+        fields=("typeName","desMin","desMax")
+
+
+
+class RemoteDevicePanelSerializer(ModelSerializer):
+    ctype = CommandTypeSerializer()
+    class Meta:
+        model=Command
+        fields=("name","ctype" ,"value", "minValue","maxValue","description")
+
 
 class UserSerializer(ModelSerializer):
     class Meta:

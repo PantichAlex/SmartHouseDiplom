@@ -27,7 +27,7 @@ class DevicesAdmin(admin.ModelAdmin):
 @admin.register(Macro)
 class MacroAdmin(admin.ModelAdmin):
     fields = ("user","device", "text")
-# Register your models here.
+
 
 @admin.register(CommandType)
 class CommandTypeAdmin(admin.ModelAdmin):
@@ -35,4 +35,4 @@ class CommandTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Command)
 class CommandAdmin(admin.ModelAdmin):
-    fields = ("name",  "ctype","value","device","description")
+    fields = ("name",  "ctype","value","minValue", "maxValue","device","description")

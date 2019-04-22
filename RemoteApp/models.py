@@ -42,6 +42,7 @@ class Users(models.Model):
     email=models.EmailField(verbose_name="Эелектронная почта")
     phone=models.CharField(verbose_name="Телефон", max_length=20, null=True)
 
+
     def __str__(self):
         return self.username
 
@@ -85,8 +86,8 @@ class CommandType(models.Model):
         verbose_name_plural="Типы команд"
 
     typeName=models.CharField(verbose_name="Тип", max_length=20)
-    desMax=models.IntegerField(verbose_name="Максимальное значение")
-    desMin=models.IntegerField(verbose_name="Минимально значение")
+    desMax=models.IntegerField(verbose_name="Критическое максимальное значение")
+    desMin=models.IntegerField(verbose_name="Критическое минимальное значение")
     def __str__(self):
         return self.typeName
 
@@ -100,6 +101,8 @@ class Command(models.Model):
     ctype=models.ForeignKey(CommandType, on_delete=models.CASCADE, verbose_name="Тип команды")
     device=models.ForeignKey(Devices, on_delete=models.CASCADE,verbose_name="Устройство")
     value=models.IntegerField(verbose_name="Значение")
+    minValue=models.IntegerField(verbose_name="Минимальное значение", null=True)
+    maxValue=models.IntegerField(verbose_name="Максимальное значение", null=True)
     description=models.CharField(verbose_name="Описание команды", max_length=255)
 
     def __str__(self):

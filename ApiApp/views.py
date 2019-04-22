@@ -3,8 +3,8 @@ from rest_framework.response import Response
 
 
 
-from .modelSerializers import RoomsSerializer, DeviceSerializer
-from RemoteApp.models import Rooms,Devices
+from .modelSerializers import RoomsSerializer, DeviceSerializer,RemoteDevicePanelSerializer
+from RemoteApp.models import Rooms,Devices,Command
 
 
 class Api(APIView):
@@ -43,9 +43,10 @@ class Login(APIView):
 class GetDeviceView(APIView):
 
     def get(self, request,id):
-
         device=Devices.objects.get(id=id)
-        devSerilizer = DeviceSerializer(device)
+
+        command=Command.objects.filter(device=device)
+        devSerilizer = RemoteDevicePanelSerializer(command,many=True)
 
         response = Response(devSerilizer.data)
         response["Access-Control-Allow-Origin"] = "*"
