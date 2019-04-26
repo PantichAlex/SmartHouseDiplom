@@ -107,3 +107,11 @@ class Command(models.Model):
 
     def __str__(self):
         return self.name
+
+    def setValue(self,value):
+        if(self.minValue>value or self.maxValue<value):
+            return False;
+
+        self.value=value
+        self.save()
+        return True

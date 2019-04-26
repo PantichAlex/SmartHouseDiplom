@@ -1,5 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import JSONParser
+from django.core.exceptions import ObjectDoesNotExist
 
 
 
@@ -40,18 +42,71 @@ class Login(APIView):
         return Response("Login")
 
 
-class GetDeviceView(APIView):
+class DeviceView(APIView):
+
 
     def get(self, request,id):
-        device=Devices.objects.get(id=id)
+        response = Response()
+        device=None
+        command=None
+        try:
+            device=Devices.objects.get(id=id)
 
-        command=Command.objects.filter(device=device)
+            command=Command.objects.filter(device=device)
+        except ObjectDoesNotExist:
+
+
+            response.status_code = 400
+            response.data = "Device doesn't exist"
+            return response
+
         devSerilizer = RemoteDevicePanelSerializer(command,many=True)
 
         response = Response(devSerilizer.data)
         response["Access-Control-Allow-Origin"] = "*"
 
         return response
+
+    def put(self,request,id):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        device = None
+        command = None
+        try:
+
+            device = Devices.objects.get(id=id)
+
+            commandId=request.data["command"]
+            value=int(request.data["value"])
+            commands = Command.objects.filter(device=device)
+            command=commands.get(id=commandId)
+            if(not id==command.device.id):
+
+                response.status_code=400
+                response.data="device has no such command"
+                return response
+
+            commandSucces=command.setValue(value)
+
+            if(commandSucces):
+                response.status_code=202
+                response.data="Success"
+            else:
+                response.status_code=412
+                response.data="Value is not valid"
+
+            return response
+
+        except ObjectDoesNotExist:
+
+            response.status_code = 400
+            response.data = "Device doesn't exist"
+            return response
+        except ValueError:
+            response.status_code=400
+            response.data="Value mast be is int"
+            return response
+
 
 class DevicesView(APIView):
 
@@ -62,5 +117,10 @@ class DevicesView(APIView):
         response=Response(devSerilizer.data)
         response["Access-Control-Allow-Origin"] = "*"
         return response
+
+
+    def post(self, request):
+        pass
+
 
 
