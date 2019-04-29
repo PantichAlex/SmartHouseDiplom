@@ -3,8 +3,6 @@ from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from django.core.exceptions import ObjectDoesNotExist
 
-
-
 from .modelSerializers import RoomsSerializer, DeviceSerializer,RemoteDevicePanelSerializer
 from RemoteApp.models import Rooms,Devices,Command
 
@@ -44,7 +42,7 @@ class Login(APIView):
 
 class DeviceView(APIView):
 
-
+    parser_classes = (JSONParser,)
     def get(self, request,id):
         response = Response()
         device=None
@@ -66,6 +64,7 @@ class DeviceView(APIView):
         response["Access-Control-Allow-Origin"] = "*"
 
         return response
+
 
     def put(self,request,id):
         response = Response()
@@ -108,8 +107,9 @@ class DeviceView(APIView):
             return response
 
 
-class DevicesView(APIView):
 
+class DevicesView(APIView):
+    parser_classes = (JSONParser,)
     def get(self, request):
         devices=Devices.objects.all()
         devSerilizer=DeviceSerializer(devices, many=True)
@@ -120,7 +120,28 @@ class DevicesView(APIView):
 
 
     def post(self, request):
-        pass
 
 
+        response=Response()
+        response["Access-Control-Allow-Origin"] = "*"
+
+        try:
+            device=Devices()
+            device.name=request.data["name"]
+            device.driverPath=request.data["driverPath"]
+            device.iconPath=request.data["icon"]
+            roomId=int(request.data["roomId"])
+            device.template=request.data["template"]
+            device.room=Rooms.objects.get(id=roomId)
+            device.save()
+            response.data="device created"
+            return response
+        except ValueError:
+            response.status_code=400
+            response.data="roomId is not integer"
+            return response
+        except KeyError:
+            response.status_code=400
+            response.data="Incomplete data"
+            return response
 

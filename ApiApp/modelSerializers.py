@@ -7,7 +7,7 @@ from RemoteApp.models import Rooms, Devices,Users,Macro,Premissions,Command, Com
 class RoomsSerializer(ModelSerializer):
     class Meta:
         model=Rooms
-        fields=('RoomName', 'Description')
+        fields=('id','RoomName', 'Description')
 
 class DeviceSerializer(ModelSerializer):
     class Meta:
@@ -26,7 +26,7 @@ class RemoteDevicePanelSerializer(ModelSerializer):
     ctype = CommandTypeSerializer()
     class Meta:
         model=Command
-        fields=("name","ctype" ,"value", "minValue","maxValue","description")
+        fields=("id","name","ctype" ,"value", "minValue","maxValue","description")
 
 
 class UserSerializer(ModelSerializer):
