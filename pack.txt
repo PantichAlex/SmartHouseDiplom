@@ -3,3 +3,4 @@ django-rest-framework==0.1.0
 djangorestframework==3.9.1
 pi==0.1.2
 pytz==2018.9
+validate-email==1.3

@@ -1,4 +1,5 @@
 from django.db import models
+from hashlib import sha256
 
 class Rooms(models.Model):
     class Meta:
@@ -41,10 +42,17 @@ class Users(models.Model):
     password=models.CharField(verbose_name="Пароль", max_length=50)
     email=models.EmailField(verbose_name="Эелектронная почта")
     phone=models.CharField(verbose_name="Телефон", max_length=20, null=True)
+    token=models.CharField(verbose_name="Уникальнай токен", max_length=200, null=True)
 
 
     def __str__(self):
         return self.username
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+
+        st=bytes(self.login+self.password, encoding='utf-8')
+        self.token=sha256(st).hexdigest()
+        super().save(force_insert, force_update, using, update_fields)
 
 
 class Premissions(models.Model):

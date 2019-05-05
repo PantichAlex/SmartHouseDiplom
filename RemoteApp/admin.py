@@ -8,7 +8,7 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(Users)
 class UserAdmin(admin.ModelAdmin):
-    fields=("username","login", "password", "email", "phone")
+    fields=("username","login", "password", "email", "phone","token")
 
 @admin.register(Premissions)
 class PermissionAdmin(admin.ModelAdmin):
