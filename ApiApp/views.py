@@ -1,16 +1,18 @@
 #-*-coding: utf-8 -*-
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.db.utils import IntegrityError
+from django.core.exceptions import ObjectDoesNotExist,PermissionDenied
 from django.utils.decorators import method_decorator
-from hashlib import md5
+
+from hashlib import md5,sha1
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from validate_email import validate_email
 
 from .apiDecorators import auth
-from .modelSerializers import RoomsSerializer, DeviceSerializer,RemoteDevicePanelSerializer
-from .Permissions import AuthPermissions
+from .modelSerializers import RoomsSerializer, DeviceSerializer,RemoteDevicePanelSerializer,UserTokenSerializer,UserSerializer
+from .Permissions import AuthPermissions,UsersPermissinos, UserPermissinos
 from RemoteApp.models import Rooms,Devices,Command, Users
 
 
@@ -54,22 +56,202 @@ class Register(APIView):
 
             user.email=email
             user.phone=request.data["phone"]
-            user.save()
-            response.data="register success"
+            user.secretKey=sha1(bytes(str(request.data["secret_key"]),encoding='utf-8')).hexdigest()
+            user.generateTokens()
+            response.data={"succes":"Регистрация прошла"}
+            response.status_code=201
 
         except KeyError:
             response.status_code = 400
             response["Status"] = "Incomplete data"
             response.data = {"detail": "Данные не полны"}
 
+        except IntegrityError:
+            response.status_code=403
+            response["Status"]="This user be registered"
+            response.data={"detail":"Пользователь уже существует"}
+
         return response
 
+    def delete(self):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            login = request.data["login"]
+            password = request.data["password"]
+
+            user = Users.objects.get(login=login)
+            if(user.deleted):
+                raise ObjectDoesNotExist()
+            user.deleted=True
+            response.status_code=202
+            response.data={"succes":"Пользователь удален"}
+
+        except PermissionDenied:
+            response.status_code = 403
+            response["Status"] = "Incorrect password"
+            response.data = {"detail": "Неверный пароль"}
+        except KeyError:
+            response.status_code = 400
+            response["Status"] = "Incomplete data"
+
+            response.data = {"detail": "Данные не полны"}
+        except ObjectDoesNotExist:
+            response.status_code = 404
+            response["Status"] = "User is not found"
+            response.data = {"detail": "Пользователь не найден"}
+        return response
+
+    def put(self,request):
+        response=Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            data=dict()
+            login=request.data["login"]
+            password=request.data["password"]
+            user=Users.objects.get(login=login)
+            if(not user.correctPassword(password)):
+                raise PermissionDenied()
+            if("new_password" in request.data):
+                newPassword=request.data["new_password"]
+                data["new_password"]=True
+                user.changePassword(password, newPassword)
+                user.generateTokens()
+            else:
+                data["new_password"]=False
+
+            if("username" in request.data):
+                username=request.data["username"]
+                data["username"]=True
+                user.username=username
+            else:
+                data["username"]=False
+
+            if("phone" in request.data):
+                phone=request.data["phone"]
+                data["phone"]=True
+                user.phone=phone
+            else:
+                data["phone"]=False
+
+            if("email" in request.data):
+                email=request.data["email"]
+                if(validate_email(email)):
+                    data["email"]=True
+                    user.email=email
+                else:
+                    data["email"]=False
+            else:
+                data["email"]=False
+
+            response.status_code=201
+            response.data =data
+            user.save()
+        except PermissionDenied:
+            response.status_code=403
+            response["Status"]="Incorrect password"
+            response.data={"detail":"Неверный пароль"}
+        except KeyError:
+            response.status_code = 400
+            response["Status"] = "Incomplete data"
+
+            response.data = {"detail": "Данные не полны"}
+        except ObjectDoesNotExist:
+            response.status_code=404
+            response["Status"]="User is not found"
+            response.data={"detail":"Пользователь не найден"}
+        return response
 
 class Login(APIView):
     parser_classes = (JSONParser,)
+    def get(self, request):
+        response=Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        return response
+
     def post(self, request):
         response=Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            user=Users.objects.get(login=request.data["login"])
+            if(user.deleted):
+                response.status_code=401
+                response["Status"]="User is deleted"
+                response.data={"detail":"Пользователь был удален"}
+                return response
 
+            password = request.data["password"]
+            if user.correctPassword(password):
+                serializer=UserTokenSerializer(user)
+                response.data=serializer.data
+            else:
+                response.status_code=403
+                response["Status"]="Incorrect password"
+                response.data={"detail":"Неверный пароль"}
+
+        except KeyError:
+            response.status_code=400
+            response["Status"]="Incorrect auntification data"
+            response.data={"detail":"Не устанновлены авторизационные данные"}
+        except ObjectDoesNotExist:
+            response.status_code=404
+            response["Status"]="User is not found"
+            response.data={"detail":"Пользователь не найден"}
+
+        return response
+
+    def put(self,request):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            user = Users.objects.get(login=request.data["login"])
+            if (user.deleted):
+                response.status_code = 401
+                response["Status"] = "User is deleted"
+                response.data = {"detail": "Пользователь был удален"}
+                return response
+            secretKey=sha1(bytes(str(request.data["secret_key"]),encoding='utf-8')).hexdigest()
+            if(user.secretKey!=secretKey):
+                response.status_code=403
+                response["Status"]="Secret key is incorrect"
+                response.data={"detaill":"Секретный ключ не верен"}
+                return response
+
+            user.resetPassword()
+            response.data={"success":"Новый пвроль выслан на почту"}
+            return response
+
+        except KeyError:
+            response.status_code = 400
+            response["Status"] = "Incorrect auntification data"
+            response.data = {"detail": "Не передан логин"}
+        except ObjectDoesNotExist:
+            response.status_code = 404
+            response["Status"] = "User is not found"
+            response.data = {"detail": "Пользователь не найден"}
+
+        return response
+
+    def delete(self, request):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            refreshToken=request.data["RefreshToken"]
+
+            user=Users.objects.get(refreshToken=refreshToken)
+
+            user.resetTokens(refreshToken)
+
+            response.data="reset tokens success"
+            return response
+        except PermissionDenied:
+            response.status_code=403
+            response["Status"]="Incorrect RefreshToken"
+            response.data={"detail":"Не верный обновляющий токен"}
+        except KeyError:
+            response.status_code=400
+            response["Status"]="RefreshToken not found"
+            response.data={"detail":"Не указан обновляющий токен"}
         return response
 
 
@@ -129,7 +311,7 @@ class DeviceView(APIView):
 
             if(commandSucces):
                 response.status_code=202
-                response.data={"detail":"Команда добавлена"}
+                response.dat={"detail":"Команда добавлена"}
             else:
                 response.status_code=412
                 response["Status"]="invalid value"
@@ -141,7 +323,7 @@ class DeviceView(APIView):
 
             response.status_code = 400
             response["Status"] ="Device is not founs"
-            response.data="Устройство не найдено"
+            response.data={"detsil":"Устройство не найдено"}
 
         except ValueError:
             response.status_code=400
@@ -160,6 +342,7 @@ class DevicesView(APIView):
     parser_classes = (JSONParser,)
     def get(self, request):
         devices=Devices.objects.all()
+
         devSerilizer=DeviceSerializer(devices, many=True)
 
         response=Response(devSerilizer.data)
@@ -182,7 +365,7 @@ class DevicesView(APIView):
             device.template=request.data["template"]
             device.room=Rooms.objects.get(id=roomId)
             device.save()
-            response.data={"detail":"Устройство создано"}
+            response.data={"succes":"Устройство создано"}
             return response
         except ValueError:
             response.status_code=400
@@ -195,3 +378,34 @@ class DevicesView(APIView):
             response.data={"detail":"Неполные данные"}
             return response
 
+class UserView(APIView):
+    parser_classes = (JSONParser,)
+   # permission_classes = (UserPermissinos,)
+
+    def get(self,request,id):
+        response=Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            user=Users.objects.get(id=id)
+            permissions=PermissionModel.objects.filter(user=user)
+            response.data=userPermissions.data
+        except ObjectDoesNotExist:
+            response.status_code=404
+            response["Status"]="UserNotFound"
+            response.data={"detail":"Пользователь не найден"}
+        return response
+
+class UsersView(APIView):
+    parser_classes = (JSONParser,)
+    permission_classes = (UsersPermissinos,)
+
+    def get(self,request):
+        response=Response()
+        response["Access-Control-Allow-Origin"] = "*"
+
+        users = Users.objects.all()
+        usersSerializer = UserSerializer(users, many=True)
+        response.data = usersSerializer.data
+
+
+        return response

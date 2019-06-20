@@ -1,5 +1,11 @@
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from django.db import models
-from hashlib import sha256
+from django.core.exceptions import PermissionDenied
+from hashlib import sha256,sha512,md5
+from random import randint,choice
+from config import login as eLogin ,password as ePassword
+import smtplib
 
 class Rooms(models.Model):
     class Meta:
@@ -25,10 +31,27 @@ class Devices(models.Model):
     iconPath=models.CharField(verbose_name="Иконка", max_length=300)
     template=models.CharField(verbose_name="Шаблон интерфейса", max_length=300)
     room=models.ForeignKey(Rooms, verbose_name="Помещение", on_delete=models.CASCADE)
+    deleted=models.BooleanField(verbose_name="Удален", default=False)
 
     def __str__(self):
 
         return self.name
+
+class Premissions(models.Model):
+    class Meta:
+        db_table="Permissions"
+        verbose_name="Права"
+        verbose_name_plural = "Права"
+
+    Description=models.CharField(verbose_name="Описание", max_length=500)
+    device=models.ForeignKey(Devices, verbose_name="Устройство", on_delete=models.CASCADE)
+    read=models.BooleanField(verbose_name="Право на чтение", default=False)
+    write=models.BooleanField(verbose_name="Право на отправку команды",default=False)
+
+    def __str__(self):
+        return self.Description
+
+
 
 class Users(models.Model):
 
@@ -42,38 +65,75 @@ class Users(models.Model):
     password=models.CharField(verbose_name="Пароль", max_length=50)
     email=models.EmailField(verbose_name="Эелектронная почта")
     phone=models.CharField(verbose_name="Телефон", max_length=20, null=True)
-    token=models.CharField(verbose_name="Уникальнай токен", max_length=200, null=True)
+    token=models.CharField(verbose_name="Уникальнай токен", max_length=200, null=True, unique=True)
+    refreshToken=models.CharField(verbose_name="Токен обновления", max_length=200, null=True, unique=True)
+    secretKey=models.CharField(verbose_name="Секретный ключ", max_length=50, null=True)
+    deleted=models.BooleanField(verbose_name="Удален", default=False)
+    deleted = models.BooleanField(verbose_name="Удален", default=False)
+    permissions=models.ManyToManyField(Premissions, verbose_name="Права")
 
 
     def __str__(self):
         return self.username
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+    def generateTokens(self):
+        num1 = randint(1, 100000)
+        num2 = randint(1, 100000)
+        basestr = self.login + self.password
+        str1 = bytes(basestr.join(str(num1)), encoding='utf-8')
+        str2 = bytes(basestr.join(str(num2)), encoding='utf-8')
 
-        st=bytes(self.login+self.password, encoding='utf-8')
-        self.token=sha256(st).hexdigest()
-        super().save(force_insert, force_update, using, update_fields)
+        self.token = sha256(str1).hexdigest()
+        self.refreshToken = sha512(str2).hexdigest()
+        self.save()
+
+    def resetTokens(self, refreshToken):
+        if(self.refreshToken==refreshToken):
+            self.generateTokens()
+        else:
+            raise PermissionDenied()
 
 
-class Premissions(models.Model):
-    class Meta:
-        db_table="Permissions"
-        verbose_name="Права"
-        verbose_name_plural = "Права"
+    def correctPassword(self, password):
+        password=md5(bytes(password,encoding='utf-8')).hexdigest()
+        return password==self.password
 
-    Description=models.CharField(verbose_name="Описание", max_length=500)
-    device=models.ForeignKey(Devices, verbose_name="Устройство", on_delete=models.CASCADE)
+    def changePassword(self, password, newPassword):
+        if(not self.correctPassword(password)):
+            raise PermissionDenied()
 
+        self.password=md5(bytes(newPassword, encoding="utf-8")).hexdigest()
+        self.generateTokens()
 
-class UserPemissions(models.Model):
+        self.save()
 
-    class Meta:
-        db_table="UserPermissions"
-        verbose_name="Права пользователей"
-        verbose_name_plural = "Права пользователей"
+    def resetPassword(self):
+        chars = 'abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
+        password=""
+        while(len(password)<8):
+            password+=choice(chars)
 
-    user=models.ForeignKey(Users, on_delete=models.CASCADE)
-    permission=models.ForeignKey(Premissions, on_delete=models.CASCADE)
+        message="Ваш пароль был сброшен зпросом на сброс. Ваш новый пароль: %s" % password
+
+        try:
+            msg=MIMEMultipart()
+            msg['From']=eLogin
+            msg['To']=self.email
+            msg['Subject']="Сброс пароля"
+            msg.attach(MIMEText(message))
+            smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
+            smtpObj.ehlo()
+            smtpObj.starttls()
+            smtpObj.ehlo()
+            smtpObj.login(eLogin,ePassword)
+            smtpObj.sendmail(msg['From'],msg['To'], msg.as_string())
+
+        finally:
+            smtpObj.quit()
+
+        self.password = md5(bytes(password, encoding="utf-8")).hexdigest()
+        self.generateTokens()
+
 
 
 class Macro(models.Model):

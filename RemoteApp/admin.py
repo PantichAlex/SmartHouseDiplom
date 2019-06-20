@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Rooms,Users,Premissions, UserPemissions, Devices, Macro, Command,CommandType
+from .models import Rooms,Users,Premissions, Devices, Macro, Command,CommandType
 
 
 @admin.register(Rooms)
@@ -8,16 +8,14 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(Users)
 class UserAdmin(admin.ModelAdmin):
-    fields=("username","login", "password", "email", "phone","token")
+    fields=("username","login", "password","permissions", "email", "phone","token","refreshToken")
 
 @admin.register(Premissions)
 class PermissionAdmin(admin.ModelAdmin):
-    fields = ("Description","device")
+    fields = ("Description","device","read","write")
 
 
-@admin.register(UserPemissions)
-class UserPermissiosAdmin(admin.ModelAdmin):
-    fields = ("user", "permission")
+
 
 
 @admin.register(Devices)

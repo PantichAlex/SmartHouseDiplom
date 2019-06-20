@@ -32,15 +32,22 @@ class RemoteDevicePanelSerializer(ModelSerializer):
 class UserSerializer(ModelSerializer):
     class Meta:
         model=Users
-        fields=("username")
+        fields=("id","username","email","phone")
 
 class PermissionSeralizer(ModelSerializer):
     class Meta:
         model=Premissions
         fields = ("Description","device")
 
+
+
 class MacroSerializer(ModelSerializer):
     class Meta:
         model=Macro
         fields = ("user","device", "text")
+
+class UserTokenSerializer(ModelSerializer):
+    class Meta:
+        model=Users
+        fields=("token","refreshToken")
 # Register your models here.
