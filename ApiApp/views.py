@@ -11,15 +11,15 @@ from rest_framework.parsers import JSONParser
 from validate_email import validate_email
 
 from .apiDecorators import auth
-from .modelSerializers import RoomsSerializer, DeviceSerializer,RemoteDevicePanelSerializer,UserTokenSerializer,UserSerializer
-from .Permissions import AuthPermissions,UsersPermissinos, UserPermissinos
-from RemoteApp.models import Rooms,Devices,Command, Users
+from .modelSerializers import RoomsSerializer, DeviceSerializer,RemoteDevicePanelSerializer,UserTokenSerializer,UserSerializer, UserPermissionsSerializer, PermissionSeralizer
+from .Permissions import AuthPermissions,UsersPermissinos, UserPermissinos, AdminPermissinos
+from RemoteApp.models import Rooms,Devices,Command, Users, Premissions, CommandType
 
 
 class Api(APIView):
     def get(self,request):
 
-        return Response(self.a)
+        return Response("Добро пожаловать в API системы \"Умный дом\"")
 
 
 class RoomsView(APIView):
@@ -269,6 +269,11 @@ class DeviceView(APIView):
         command=None
         try:
             device=Devices.objects.get(id=id)
+            if(device.deleted):
+                response.status_code=404
+                response["Status"]="Device offed"
+                response.data={"detail":"Устройство отключено"}
+                return response
 
             command=Command.objects.filter(device=device)
         except ObjectDoesNotExist:
@@ -287,12 +292,64 @@ class DeviceView(APIView):
         return response
 
 
+    def post(self, request, id):
+        response=Response()
+        response["Access-Control-Allow-Origin"]="*"
+        command=Command()
+        try:
+            command.name=request.data["name"]
+
+            try:
+                deviceId=request.data["device"]
+                command.device=Devices.objects.get(id=deviceId)
+            except ObjectDoesNotExist:
+                response.status_code=404
+                response["Status"]="Device not found"
+                response.data={"detail":"Устройство не найдено"}
+                return response
+            try:
+                ctype=request.data["ctype"]
+                command.ctype=CommandType.objects.get(typeName=ctype)
+            except ObjectDoesNotExist:
+                response.status_code=404
+                response["Status"]="Device not found"
+                response.data={"detaiil":"Не известный тип команды"}
+                return response
+
+            minValue=request.data["minValue"]
+            maxValue=request.data["maxValue"]
+            if(command.ctype.desMin>minValue or command.ctype.desMax<minValue):
+                response.status_code=403
+                response["Status"]="MinValue or MaxValue not in diaposon"
+                response.data={"detail":"Значение minValue и maxValue должны быть в диапазоне от {} до {} включительно".format(command.ctype.desMin, command.ctype.desMax)}
+                return response
+
+            command.minValue=minValue
+            command.maxValue=maxValue
+            command.value=maxValue
+            command.save()
+            response.data={"succes":"Команда создана"}
+            return response
+
+        except KeyError:
+            response.status_code=400
+            response["Status"]="Incomplete data"
+            response.data={"detail":"Указаны не все данные"}
+        return response
+
     def put(self,request,id):
         response = Response()
         response["Access-Control-Allow-Origin"] = "*"
         device = None
         command = None
         try:
+
+            if(device.off):
+                response.status_code=403
+                response["Status"]="Device is offed"
+                response.data={"detail":"Устройство отключено"}
+                return response
+
 
             device = Devices.objects.get(id=id)
 
@@ -311,11 +368,45 @@ class DeviceView(APIView):
 
             if(commandSucces):
                 response.status_code=202
-                response.dat={"detail":"Команда добавлена"}
+                response.data={"detail":"Команда выполнена"}
             else:
-                response.status_code=412
+                response.status_code=406
                 response["Status"]="invalid value"
                 response.data={"detail":"Недопустмое значение"}
+
+
+
+        except ObjectDoesNotExist:
+
+            response.status_code = 400
+            response["Status"] ="Device is not founs"
+            response.data={"detsil":"Устройство не найдено"}
+
+        except ValueError:
+            response.status_code=400
+            response["Status"]="Value must be integer"
+            response.data={"detail":"Значение должно быть целым числом"}
+
+        except KeyError:
+            response.status_code=400
+            response["Status"]="Incomplete data"
+            response.data={"detail":"Данные не полны"}
+
+        return response
+
+    def delete(self,request,id):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        device = None
+
+        try:
+
+            device = Devices.objects.get(id=id)
+
+            device.off=True
+            if("on" in request.data):
+                device.off=False
+            device.save()
 
 
 
@@ -341,7 +432,7 @@ class DeviceView(APIView):
 class DevicesView(APIView):
     parser_classes = (JSONParser,)
     def get(self, request):
-        devices=Devices.objects.all()
+        devices=Devices.objects.filter(deleted=False)
 
         devSerilizer=DeviceSerializer(devices, many=True)
 
@@ -380,19 +471,104 @@ class DevicesView(APIView):
 
 class UserView(APIView):
     parser_classes = (JSONParser,)
-   # permission_classes = (UserPermissinos,)
+    permission_classes = (UserPermissinos,)
 
     def get(self,request,id):
         response=Response()
         response["Access-Control-Allow-Origin"] = "*"
         try:
             user=Users.objects.get(id=id)
-            permissions=PermissionModel.objects.filter(user=user)
-            response.data=userPermissions.data
+            serializer=UserPermissionsSerializer(user)
+            response.data=serializer.data
+
         except ObjectDoesNotExist:
             response.status_code=404
             response["Status"]="UserNotFound"
             response.data={"detail":"Пользователь не найден"}
+        return response
+
+    def post(self,request,id):
+        response=Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            user=Users.objects.get(id=id)
+            try:
+                permissionId=request.data["permission"]
+                permission=Premissions.objects.get(id=permissionId)
+                if permission not in user.permissions.all():
+                    user.permissions.add(permission)
+                    response.status_code=202
+                    response.data={"succes":"право добавлено"}
+                else:
+                    response.status_code=200
+                    response.data={"succes":"пользователь уже владеет этим правом"}
+            except KeyError:
+                response.status_code=400
+                response["Status"]="Inscomplete data"
+                response.data={"detail":"Не указано право"}
+
+            except ObjectDoesNotExist:
+                response.status_code=404
+                response["Status"]="Permisson not found"
+                response.data={"detail":"Право не найдено"}
+                return response
+
+        except ObjectDoesNotExist:
+            response.status_code = 404
+            response["Status"] = "UserNotFound"
+            response.data = {"detail": "Пользователь не найден"}
+
+        return response
+
+    def put(self,request,id):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+
+        try:
+            user=Users.objects.get(id=id)
+            user.admin=True
+            user.save()
+            response.status_code=202
+            answer="Пользователь {} теперь владеет правами администратора".format(user.username)
+            response.data={"success":answer}
+        except ObjectDoesNotExist:
+            response.status_code=404
+            response["Status"]="User not found"
+            response.data={"detail":"Пользователь не найден"}
+
+        return response
+
+    def delete(self, request, id):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            user = Users.objects.get(id=id)
+            try:
+                permissionId = request.data["permission"]
+                permission = Premissions.objects.get(id=permissionId)
+                if permission in user.permissions.all():
+                    user.permissions.remove(permission)
+                    response.status_code = 202
+                    response.data = {"succes": "право удалено"}
+                else:
+                    response.status_code = 200
+                    response.data = {"succes": "у пользователя не было такого права"}
+            except KeyError:
+                response.status_code = 400
+                response["Status"] = "Inscomplete data"
+                response.data = {"detail": "Не указано право"}
+
+            except ObjectDoesNotExist:
+                response.status_code = 404
+                response["Status"] = "Permisson not found"
+                response.data = {"detail": "Право не найдено"}
+                return response
+
+        except ObjectDoesNotExist:
+            response.status_code = 404
+            response["Status"] = "UserNotFound"
+            response.data = {"detail": "Пользователь не найден"}
+
         return response
 
 class UsersView(APIView):
@@ -407,5 +583,125 @@ class UsersView(APIView):
         usersSerializer = UserSerializer(users, many=True)
         response.data = usersSerializer.data
 
+        return response
+
+    def post(self, request):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            permissionId=request.data["permission"]
+            permission=Premissions.objects.get(id=permissionId)
+            users=Users.objects.all()
+            for user in users:
+                user.permissions.add(permission)
+
+            response.status_code=202
+            response.data={"succes": "всем пользователям добавлено право"}
+
+        except KeyError:
+            response.status_code=400
+            response["Status"]="permission not specified"
+            response.data={"detail":"не указано id права"}
 
         return response
+
+    def delete(self, request):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            permissionId = request.data["permission"]
+            permission = Premissions.objects.get(id=permissionId)
+            users = Users.objects.all()
+            for user in users:
+                if(not user.admin):
+                    user.permissions.remove(permission)
+
+            response.status_code = 202
+            response.data = {"succes": "Все пользователи лишены права"}
+
+        except KeyError:
+            response.status_code = 400
+            response["Status"] = "permission not specified"
+            response.data = {"detail": "не указано id права"}
+
+        return response
+
+
+class PermissionsView(APIView):
+    parser_classes = (JSONParser,)
+    permission_classes = (AdminPermissinos,)
+
+    def get(self,request):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        permissios=Premissions.objects.all()
+        serializer=PermissionSeralizer(permissios, many=True)
+        response.data=serializer.data
+        return response
+
+    def post(self,request):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            description=request.data["description"]
+            deviceId=request.data["device"]
+            device=Devices.objects.get(id=deviceId)
+            read=bool(request.data["read"])
+            write=bool(request.data["write"])
+            permisson=Premissions()
+            permisson.Description=description
+            permisson.device=device
+            permisson.read=read
+            permisson.write=write
+            permisson.save()
+            response.status_code=201
+            response.data={"succes":"Право создано"}
+
+        except KeyError:
+            response.status_code=400
+            response["Status"]="Inscomplete data"
+            response.data={"detail":"Не все данные указаны"}
+        except ObjectDoesNotExist:
+            response.status_code=404
+            response["Status"]="Device not found"
+            response.data={"detail":"Устройство не найдено"}
+        except ValueError:
+            response.status_code=400
+            response["Status"]="Read or write flag must be bool"
+            response.data={"detail":"Чтение или запись - это логический тип данных"}
+        return response
+
+
+class PermissionView(APIView):
+    parser_classes = (JSONParser,)
+    permission_classes = (AdminPermissinos,)
+
+    def get(self,request,id):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            permisson=Premissions.objects.get(id=id)
+            serializer=PermissionSeralizer(permisson)
+            response.data=serializer.data
+        except ObjectDoesNotExist:
+            response.status_code=404
+            response["Status"]="Permisson Not Found"
+            response.data={"detail": "Такого права не существует"}
+
+        return response
+
+    def delete(self,request,id):
+        response = Response()
+        response["Access-Control-Allow-Origin"] = "*"
+        try:
+            permission=Premissions.objects.get(id=id)
+            permission.delete()
+            response.status_code=202
+            response.data={"succes":"Право удалено"}
+        except ObjectDoesNotExist:
+            response.status_code=404
+            response["Status"]="Permission not found"
+            response.data={"detail":"Такого права не существует"}
+        return response
+
+

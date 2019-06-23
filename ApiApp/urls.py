@@ -11,7 +11,9 @@ urlpatterns = [
     path('devices/<int:id>', views.DeviceView.as_view()),
     path('login', views.Login.as_view()),
     path('users', views.UsersView.as_view()),
-    path('users/<int:id>', views.UserView.as_view())
+    path('users/<int:id>', views.UserView.as_view()),
+    path('permissions', views.PermissionsView.as_view()),
+    path('permissions/<int:id>',views.PermissionView.as_view())
 
 
  ]

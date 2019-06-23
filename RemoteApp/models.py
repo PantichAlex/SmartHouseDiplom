@@ -1,3 +1,4 @@
+from ctypes import CDLL, c_int, c_char_p
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from django.db import models
@@ -69,7 +70,7 @@ class Users(models.Model):
     refreshToken=models.CharField(verbose_name="Токен обновления", max_length=200, null=True, unique=True)
     secretKey=models.CharField(verbose_name="Секретный ключ", max_length=50, null=True)
     deleted=models.BooleanField(verbose_name="Удален", default=False)
-    deleted = models.BooleanField(verbose_name="Удален", default=False)
+    admin = models.BooleanField(verbose_name="Администратор", default=False)
     permissions=models.ManyToManyField(Premissions, verbose_name="Права")
 
 
@@ -153,7 +154,7 @@ class CommandType(models.Model):
         verbose_name="Тип команды"
         verbose_name_plural="Типы команд"
 
-    typeName=models.CharField(verbose_name="Тип", max_length=20)
+    typeName=models.CharField(verbose_name="Тип", max_length=20, unique=True)
     desMax=models.IntegerField(verbose_name="Критическое максимальное значение")
     desMin=models.IntegerField(verbose_name="Критическое минимальное значение")
     def __str__(self):
@@ -168,6 +169,7 @@ class Command(models.Model):
     name=models.CharField(verbose_name="Название команды", max_length=30)
     ctype=models.ForeignKey(CommandType, on_delete=models.CASCADE, verbose_name="Тип команды")
     device=models.ForeignKey(Devices, on_delete=models.CASCADE,verbose_name="Устройство")
+    driverIdenti=models.CharField(verbose_name="имя команды внутри драйвера", max_length=50, default="")
     value=models.IntegerField(verbose_name="Значение")
     minValue=models.IntegerField(verbose_name="Минимальное значение", null=True)
     maxValue=models.IntegerField(verbose_name="Максимальное значение", null=True)
@@ -179,7 +181,13 @@ class Command(models.Model):
     def setValue(self,value):
         if(self.minValue>value or self.maxValue<value):
             return False;
+        driverPath=self.device.driverPath
 
+        dll=CDLL(driverPath)
+        command=c_char_p(self.driverIdenti.encode('utf-8'))
+        cvalue=c_int(value)
+        dll.sendCommand(command,value)
         self.value=value
         self.save()
+
         return True

@@ -8,19 +8,16 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(Users)
 class UserAdmin(admin.ModelAdmin):
-    fields=("username","login", "password","permissions", "email", "phone","token","refreshToken")
+    fields=("username","login", "password","permissions", "email", "phone","token","refreshToken", "admin")
 
 @admin.register(Premissions)
 class PermissionAdmin(admin.ModelAdmin):
     fields = ("Description","device","read","write")
 
 
-
-
-
 @admin.register(Devices)
 class DevicesAdmin(admin.ModelAdmin):
-    fields=("name", "driverPath", "iconPath", "template", "room")
+    fields=("name", "driverPath", "iconPath", "template", "room","deleted")
 
 @admin.register(Macro)
 class MacroAdmin(admin.ModelAdmin):
@@ -33,4 +30,4 @@ class CommandTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Command)
 class CommandAdmin(admin.ModelAdmin):
-    fields = ("name",  "ctype","value","minValue", "maxValue","device","description")
+    fields = ("name",  "ctype","driverIdenti","value","minValue", "maxValue","device","description")
